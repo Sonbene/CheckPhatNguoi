@@ -1,4 +1,4 @@
-----------------------------CREATE BY NGUYỄN ANH SƠN -------------------------------------
+---------------------------------CREATE BY NGUYỄN ANH SƠN -------------------------------------
 
 ỨNG DỤNG ANDROID ĐỌC BIỂN SỐ XE, TRA CỨU PHẠT NGUỘI, GỬI THÔNG TIN QUA BLUETOOTH
 
