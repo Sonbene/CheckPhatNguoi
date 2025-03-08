@@ -1,4 +1,5 @@
 ----------------------------CREATE BY NGUYỄN ANH SƠN -------------------------------------
+
 ỨNG DỤNG ANDROID ĐỌC BIỂN SỐ XE, TRA CỨU PHẠT NGUỘI, GỬI THÔNG TIN QUA BLUETOOTH
 
 Ứng dụng Android này tích hợp nhiều tính năng nhằm cung cấp giải pháp toàn diện cho việc giám sát và điều khiển xe.
