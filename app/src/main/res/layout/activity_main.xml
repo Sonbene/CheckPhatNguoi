@@ -1,0 +1,223 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- File merged_layout.xml -->
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/mainLayout"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#AAE449"
+    android:backgroundTint="#F2F2BE"
+    android:padding="6dp"
+    tools:context=".MainActivity">
+
+    <!-- Guideline bên trái: cách mép 10dp -->
+    <androidx.constraintlayout.widget.Guideline
+        android:id="@+id/guideline_start"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        app:layout_constraintGuide_begin="10dp" />
+
+    <!-- Guideline bên phải: cách mép 10dp -->
+    <androidx.constraintlayout.widget.Guideline
+        android:id="@+id/guideline_end"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        app:layout_constraintGuide_end="10dp" />
+
+    <!-- Preview camera: sử dụng giá trị mới -->
+    <androidx.camera.view.PreviewView
+        android:id="@+id/previewView"
+        android:layout_width="377dp"
+        android:layout_height="243dp"
+        app:layout_constraintDimensionRatio="16:9"
+        app:layout_constraintEnd_toStartOf="@id/guideline_end"
+        app:layout_constraintHeight_percent="0.25"
+        app:layout_constraintStart_toEndOf="@id/guideline_start"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <!-- Row chứa biển số xe -->
+    <LinearLayout
+        android:id="@+id/licenseRow"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:orientation="horizontal"
+        app:layout_constraintTop_toBottomOf="@id/previewView"
+        app:layout_constraintStart_toEndOf="@id/guideline_start"
+        app:layout_constraintEnd_toStartOf="@id/guideline_end">
+        <EditText
+            android:id="@+id/edtBienSoXe"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:inputType="text"
+            android:text="19A29694"
+            android:textColor="#070101" />
+    </LinearLayout>
+
+    <!-- ScrollView hiển thị kết quả API (20% chiều cao) -->
+    <ScrollView
+        android:id="@+id/scrollViewAPI"
+        android:layout_width="378dp"
+        android:layout_height="140dp"
+        android:layout_marginTop="8dp"
+        android:background="#EFE5E5"
+        android:backgroundTint="#99BC6F"
+        android:clickable="false"
+        app:layout_constraintEnd_toStartOf="@id/guideline_end"
+        app:layout_constraintHeight_percent="0.20"
+        app:layout_constraintStart_toEndOf="@id/guideline_start"
+        app:layout_constraintTop_toBottomOf="@id/licenseRow">
+
+        <TextView
+            android:id="@+id/txtKetQuaPhatNguoi"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:backgroundTint="#00857070"
+            android:padding="16dp"
+            android:text="Kết quả tra phạt nguội"
+            android:textColor="#FAF80F0F"
+            android:textSize="14sp" />
+    </ScrollView>
+
+    <!-- ScrollView hiển thị kết quả ghi âm (20% chiều cao) -->
+
+    <!-- Container cho các Button, chiếm phần còn lại (25% chiều cao) -->
+
+    <ScrollView
+        android:id="@+id/scrollViewResult"
+        android:layout_width="378dp"
+        android:layout_height="140dp"
+        android:layout_marginTop="8dp"
+        android:background="#E2E8ED"
+        android:backgroundTint="#ABD7AD"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toStartOf="@id/guideline_end"
+        app:layout_constraintHeight_percent="0.20"
+        app:layout_constraintHorizontal_bias="0.2"
+        app:layout_constraintStart_toEndOf="@id/guideline_start"
+        app:layout_constraintTop_toBottomOf="@id/scrollViewAPI"
+        app:layout_constraintVertical_bias="0.0">
+
+        <TextView
+            android:id="@+id/tvResult"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="#C51616"
+            android:backgroundTint="#005EB15E"
+            android:padding="8dp"
+            android:text="Kết quả ghi âm"
+            android:textColor="#000000"
+            android:textSize="14sp" />
+    </ScrollView>
+
+    <LinearLayout
+        android:id="@+id/buttonContainer"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:layout_marginTop="8dp"
+        android:orientation="vertical"
+        app:layout_constraintTop_toBottomOf="@id/scrollViewResult"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toEndOf="@id/guideline_start"
+        app:layout_constraintEnd_toStartOf="@id/guideline_end"
+        app:layout_constraintHeight_percent="0.25">
+
+        <!-- Row 1: btnCapture & btnGetPhatNguoi -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:orientation="horizontal">
+
+            <Button
+                android:id="@+id/btnCapture"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:clickable="true"
+                android:minHeight="55dp"
+                android:text="Chụp"
+                android:textSize="12sp"
+                android:foreground="?attr/selectableItemBackground"/>
+            <Space
+                android:layout_width="8dp"
+                android:layout_height="match_parent" />
+            <Button
+                android:id="@+id/btnGetPhatNguoi"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="match_parent"
+                android:minHeight="55dp"
+                android:text="Kiểm tra phạt nguội"
+                android:textSize="12sp"
+                android:foreground="?attr/selectableItemBackground"/>
+        </LinearLayout>
+
+        <!-- Row 2: btnRecord & btnSelectDevice -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_marginTop="8dp"
+            android:layout_weight="1"
+            android:orientation="horizontal">
+            <Button
+                android:id="@+id/btnRecord"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="match_parent"
+                android:minHeight="55dp"
+                android:text="Giữ để ghi âm"
+                android:textSize="12sp"
+                android:foreground="?attr/selectableItemBackground"/>
+            <Space
+                android:layout_width="8dp"
+                android:layout_height="match_parent" />
+            <Button
+                android:id="@+id/btnSelectDevice"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="match_parent"
+                android:minHeight="55dp"
+                android:text="Chọn thiết bị"
+                android:textSize="12sp"
+                android:foreground="?attr/selectableItemBackground"/>
+        </LinearLayout>
+
+        <!-- Row 3: btnSend & btnSendPhatNguoi -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_marginTop="8dp"
+            android:layout_weight="1"
+            android:orientation="horizontal">
+            <Button
+                android:id="@+id/btnSend"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="match_parent"
+                android:minHeight="55dp"
+                android:text="Gửi đoạn ghi âm"
+                android:textSize="12sp"
+                android:foreground="?attr/selectableItemBackground"/>
+            <Space
+                android:layout_width="8dp"
+                android:layout_height="match_parent" />
+            <Button
+                android:id="@+id/btnSendPhatNguoi"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="match_parent"
+                android:minHeight="55dp"
+                android:text="Gửi phạt nguội"
+                android:textSize="12sp"
+                android:foreground="?attr/selectableItemBackground"/>
+        </LinearLayout>
+    </LinearLayout>
+
+</androidx.constraintlayout.widget.ConstraintLayout>
