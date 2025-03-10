@@ -132,6 +132,8 @@ public class MainActivity extends AppCompatActivity {
     private Runnable loadingRunnable;
     private int dotCount = 0;
 
+    // --- Global variables ---
+    private TextRecognizer textRecognizer;  // TextRecognizer toàn cục
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -180,6 +182,10 @@ public class MainActivity extends AppCompatActivity {
         // ============================================================
         // KHỞI TẠO CAMERA (CameraX) và yêu cầu quyền CAMERA
         // ============================================================
+
+        textRecognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS);
+
+
         permissionLauncher = registerForActivityResult(
                 new ActivityResultContracts.RequestPermission(),
                 isGranted -> {
@@ -546,18 +552,189 @@ public class MainActivity extends AppCompatActivity {
         }, ContextCompat.getMainExecutor(this));
     }
 
+//
+//    // Helper: Tính toán inSampleSize dựa vào kích thước ảnh gốc và kích thước mục tiêu
+//    private int calculateInSampleSize(BitmapFactory.Options options, int reqWidth, int reqHeight) {
+//        int height = options.outHeight;
+//        int width = options.outWidth;
+//        int inSampleSize = 1;
+//        if (height > reqHeight || width > reqWidth) {
+//            final int halfHeight = height / 2;
+//            final int halfWidth = width / 2;
+//            while ((halfHeight / inSampleSize) >= reqHeight && (halfWidth / inSampleSize) >= reqWidth) {
+//                inSampleSize *= 2;
+//            }
+//        }
+//        return inSampleSize;
+//    }
+//
+//    private void capturePhotoAndFreeze() {
+//        // Nếu đang ở trạng thái "Chụp lại", nghĩa là đã freeze preview – bấm để khôi phục preview
+//        if (btnCapture.getText().toString().equals("Chụp lại")) {
+//            resumeCamera();
+//            btnCapture.setText("Chụp");
+//            return;
+//        }
+//        if (imageCapture == null) {
+//            Toast.makeText(this, "ImageCapture chưa khởi tạo", Toast.LENGTH_SHORT).show();
+//            return;
+//        }
+//
+//        // Lưu ý: Không gọi cameraProvider.unbindAll() để giữ use case imageCapture luôn bind
+//        File photoFile = new File(getCacheDir(), "captured_" + System.currentTimeMillis() + ".jpg");
+//        ImageCapture.OutputFileOptions outputOptions =
+//                new ImageCapture.OutputFileOptions.Builder(photoFile).build();
+//
+//        imageCapture.takePicture(
+//                outputOptions,
+//                ContextCompat.getMainExecutor(this),
+//                new ImageCapture.OnImageSavedCallback() {
+//                    @Override
+//                    public void onImageSaved(@NonNull ImageCapture.OutputFileResults outputFileResults) {
+//                        runOnUiThread(() -> {
+//                            try {
+//                                // Decode ảnh với inSampleSize tính toán dựa vào kích thước mục tiêu
+//                                BitmapFactory.Options options = new BitmapFactory.Options();
+//                                options.inJustDecodeBounds = true;
+//                                BitmapFactory.decodeFile(photoFile.getAbsolutePath(), options);
+//
+//                                int reqWidth = 640;
+//                                int reqHeight = 480;
+//                                options.inSampleSize = calculateInSampleSize(options, reqWidth, reqHeight);
+//                                options.inJustDecodeBounds = false;
+//
+//                                Bitmap bitmap = BitmapFactory.decodeFile(photoFile.getAbsolutePath(), options);
+//                                if (bitmap != null) {
+//                                    // Freeze preview bằng cách đặt overlay (nếu bạn muốn hiển thị ảnh vừa chụp)
+//                                    previewView.setForeground(new BitmapDrawable(getResources(), bitmap));
+//                                    btnCapture.setText("Chụp lại");
+//                                    processCapturedImage(bitmap);
+//                                } else {
+//                                    Toast.makeText(MainActivity.this, "Không thể hiển thị ảnh", Toast.LENGTH_SHORT).show();
+//                                }
+//                            } catch (OutOfMemoryError e) {
+//                                e.printStackTrace();
+//                                Toast.makeText(MainActivity.this, "Lỗi bộ nhớ khi xử lý ảnh", Toast.LENGTH_SHORT).show();
+//                            }
+//                        });
+//                    }
+//                    @Override
+//                    public void onError(@NonNull ImageCaptureException exception) {
+//                        runOnUiThread(() ->
+//                                Toast.makeText(MainActivity.this, "Chụp ảnh thất bại: " + exception.getMessage(), Toast.LENGTH_SHORT).show()
+//                        );
+//                    }
+//                }
+//        );
+//    }
+//
+//    private void processCapturedImage(Bitmap bitmap) {
+//        try {
+//            InputImage image = InputImage.fromBitmap(bitmap, 0);
+//            textRecognizer.process(image)
+//                    .addOnSuccessListener(visionText -> {
+//                        String recognizedText = visionText.getText();
+//                        Log.d("MLKit", "Recognized text: " + recognizedText);
+//                        String cleanedText = recognizedText.replaceAll("[\\s\\.-]+", "").trim().toUpperCase();
+//                        Log.d("MLKit", "Cleaned text: " + cleanedText);
+//
+//                        // Các mẫu regex mở rộng để xử lý nhiều trường hợp biển số:
+//                        // - regexStandard: 2 chữ số, 1-2 chữ cái, 4 đến 7 chữ số
+//                        // - regexDiplomatic: 2 chữ số, "CD", 4 đến 7 chữ số
+//                        // - regexMilitary: 2 chữ số, "QT", 4 đến 7 chữ số
+//                        // - regexTaxi: 2 chữ số, "TX", 4 đến 7 chữ số
+//                        // - regexStandardAlphaNum: 2 chữ số, 1-2 ký tự (chữ hoặc số), 4 đến 7 chữ số
+//                        String regexStandard         = "\\d{2}[A-Z]{1,2}\\d{4,5}";
+//                        String regexDiplomatic       = "\\d{2}CD\\d{4,5}";
+//                        String regexMilitary         = "\\d{2}QT\\d{4,5}";
+//                        String regexTaxi             = "\\d{2}TX\\d{4,5}";
+//                        String regexStandardAlphaNum = "\\d{2}[A-Z0-9]{1,2}\\d{4,5}";
+//
+//                        String[] regexPatterns = new String[] {
+//                                regexStandard,
+//                                regexDiplomatic,
+//                                regexMilitary,
+//                                regexTaxi,
+//                                regexStandardAlphaNum
+//                        };
+//
+//                        String licensePlate = null;
+//                        for (String regex : regexPatterns) {
+//                            Pattern pattern = Pattern.compile(regex);
+//                            Matcher matcher = pattern.matcher(cleanedText);
+//                            if (matcher.find()) {
+//                                licensePlate = matcher.group();
+//                                break;
+//                            }
+//                        }
+//
+//                        if (licensePlate != null) {
+//                            Toast.makeText(MainActivity.this, "Biển số: " + licensePlate, Toast.LENGTH_LONG).show();
+//                            edtBienSoXe.setText(licensePlate);
+//                            // Gọi API nếu cần
+//                            // callTrafficFineAPI(licensePlate);
+//                        } else {
+//                            Toast.makeText(MainActivity.this, "Không tìm thấy biển số xe", Toast.LENGTH_SHORT).show();
+//                        }
+//                        // Giải phóng Bitmap sau khi xử lý (nếu không còn sử dụng)
+//                        if (bitmap != null && !bitmap.isRecycled()) {
+//                            bitmap.recycle();
+//                        }
+//                    })
+//                    .addOnFailureListener(e -> {
+//                        Toast.makeText(MainActivity.this, "Lỗi xử lý ảnh: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+//                        Log.e("MLKit", "Text recognition error", e);
+//                        if (bitmap != null && !bitmap.isRecycled()) {
+//                            bitmap.recycle();
+//                        }
+//                    });
+//        } catch (Exception e) {
+//            e.printStackTrace();
+//            Toast.makeText(MainActivity.this, "Lỗi khi xử lý ảnh", Toast.LENGTH_SHORT).show();
+//        }
+//    }
+//    // Hàm resumeCamera khôi phục preview khi người dùng bấm "Chụp lại"
+//    private void resumeCamera() {
+//        // Xóa overlay hiển thị ảnh đã freeze
+//        previewView.setForeground(null);
+//        // Nếu cần, có thể gọi lại startCamera() để đảm bảo các use case vẫn hoạt động (thường imageCapture vẫn bind)
+//        // startCamera();
+//    }
+
+
+    // --- OCRCallback interface ---
+    private interface OCRCallback {
+        void onPlateFound(String licensePlate);
+        void onNoPlateFound();
+    }
+
+    // --- Helper: Tính toán inSampleSize dựa vào kích thước ảnh gốc và kích thước mục tiêu ---
+    private int calculateInSampleSize(BitmapFactory.Options options, int reqWidth, int reqHeight) {
+        int height = options.outHeight;
+        int width = options.outWidth;
+        int inSampleSize = 1;
+        if (height > reqHeight || width > reqWidth) {
+            final int halfHeight = height / 2;
+            final int halfWidth = width / 2;
+            while ((halfHeight / inSampleSize) >= reqHeight && (halfWidth / inSampleSize) >= reqWidth) {
+                inSampleSize *= 2;
+            }
+        }
+        return inSampleSize;
+    }
+
+    // Hàm capturePhotoAndFreeze: Chụp ảnh, freeze preview bằng overlay và xử lý OCR trên ảnh gốc
     private void capturePhotoAndFreeze() {
-        // Nếu đang ở trạng thái "Chụp lại" => khôi phục camera
         if (btnCapture.getText().toString().equals("Chụp lại")) {
-            btnCapture.setText("Chụp");
-            //txtBienSoXe .setText("");
             resumeCamera();
+            btnCapture.setText("Chụp");
             return;
         }
         if (imageCapture == null) {
             Toast.makeText(this, "ImageCapture chưa khởi tạo", Toast.LENGTH_SHORT).show();
             return;
         }
+        // Không gọi unbindAll() để giữ use case imageCapture bind
         File photoFile = new File(getCacheDir(), "captured_" + System.currentTimeMillis() + ".jpg");
         ImageCapture.OutputFileOptions outputOptions =
                 new ImageCapture.OutputFileOptions.Builder(photoFile).build();
@@ -569,21 +746,29 @@ public class MainActivity extends AppCompatActivity {
                     @Override
                     public void onImageSaved(@NonNull ImageCapture.OutputFileResults outputFileResults) {
                         runOnUiThread(() -> {
-                            BitmapFactory.Options options = new BitmapFactory.Options();
-                            options.inSampleSize = 2;
-                            Bitmap bitmap = BitmapFactory.decodeFile(photoFile.getAbsolutePath(), options);
-                            if (bitmap != null) {
-                                if (cameraProvider != null) {
-                                    cameraProvider.unbindAll();
-                                }
-                                // Hiển thị ảnh tạm (overlay)
-                                previewView.setForeground(new BitmapDrawable(getResources(), bitmap));
-                                if (btnCapture.getText().toString().equals("Chụp")) {
+                            try {
+                                // Decode ảnh với inSampleSize tính toán dựa vào kích thước mục tiêu (ví dụ 640x480)
+                                BitmapFactory.Options options = new BitmapFactory.Options();
+                                options.inJustDecodeBounds = true;
+                                BitmapFactory.decodeFile(photoFile.getAbsolutePath(), options);
+
+                                int reqWidth = 640;
+                                int reqHeight = 480;
+                                options.inSampleSize = calculateInSampleSize(options, reqWidth, reqHeight);
+                                options.inJustDecodeBounds = false;
+
+                                Bitmap bitmap = BitmapFactory.decodeFile(photoFile.getAbsolutePath(), options);
+                                if (bitmap != null) {
+                                    // Freeze preview bằng cách đặt overlay (nếu cần hiển thị ảnh vừa chụp)
+                                    previewView.setForeground(new BitmapDrawable(getResources(), bitmap));
                                     btnCapture.setText("Chụp lại");
+                                    processCapturedImage(bitmap);
+                                } else {
+                                    Toast.makeText(MainActivity.this, "Không thể hiển thị ảnh", Toast.LENGTH_SHORT).show();
                                 }
-                                processCapturedImage(bitmap);
-                            } else {
-                                Toast.makeText(MainActivity.this, "Không thể hiển thị ảnh", Toast.LENGTH_SHORT).show();
+                            } catch (OutOfMemoryError e) {
+                                e.printStackTrace();
+                                Toast.makeText(MainActivity.this, "Lỗi bộ nhớ khi xử lý ảnh", Toast.LENGTH_SHORT).show();
                             }
                         });
                     }
@@ -597,43 +782,159 @@ public class MainActivity extends AppCompatActivity {
         );
     }
 
-    private void resumeCamera() {
-        previewView.setForeground(null);
-        startCamera();
-        btnCapture.setEnabled(true);
+    // Hàm processCapturedImage: Thử OCR trên ảnh gốc; nếu không detect được, thử xoay ảnh
+    private void processCapturedImage(Bitmap bitmap) {
+        try {
+            InputImage image = InputImage.fromBitmap(bitmap, 0);
+            textRecognizer.process(image)
+                    .addOnSuccessListener(visionText -> {
+                        String recognizedText = visionText.getText();
+                        Log.d("MLKit", "Recognized text: " + recognizedText);
+                        String cleanedText = recognizedText.replaceAll("[\\s\\.-]+", "").trim().toUpperCase();
+                        Log.d("MLKit", "Cleaned text: " + cleanedText);
+
+                        String licensePlate = extractLicensePlate(cleanedText);
+                        if (licensePlate != null) {
+                            Toast.makeText(MainActivity.this, "Biển số: " + licensePlate, Toast.LENGTH_LONG).show();
+                            edtBienSoXe.setText(licensePlate);
+                            // callTrafficFineAPI(licensePlate);
+                            // Giải phóng bitmap sau khi dùng
+                            if (bitmap != null && !bitmap.isRecycled()) {
+                                bitmap.recycle();
+                            }
+                        } else {
+                            // Nếu không tìm được trên ảnh gốc, thử xoay ảnh
+                            int[] angles = {15, -15, 30, -30};
+                            attemptOCRWithRotation(bitmap, angles, 0, new OCRCallback() {
+                                @Override
+                                public void onPlateFound(String plate) {
+                                    Toast.makeText(MainActivity.this, "Biển số (xoay): " + plate, Toast.LENGTH_LONG).show();
+                                    edtBienSoXe.setText(plate);
+                                    // callTrafficFineAPI(plate);
+                                    if (bitmap != null && !bitmap.isRecycled()) {
+                                        bitmap.recycle();
+                                    }
+                                }
+                                @Override
+                                public void onNoPlateFound() {
+                                    Toast.makeText(MainActivity.this, "Không tìm thấy biển số xe", Toast.LENGTH_SHORT).show();
+                                    if (bitmap != null && !bitmap.isRecycled()) {
+                                        bitmap.recycle();
+                                    }
+                                }
+                            });
+                        }
+                    })
+                    .addOnFailureListener(e -> {
+                        Toast.makeText(MainActivity.this, "Lỗi xử lý ảnh: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                        Log.e("MLKit", "Text recognition error", e);
+                        if (bitmap != null && !bitmap.isRecycled()) {
+                            bitmap.recycle();
+                        }
+                    });
+        } catch (Exception e) {
+            e.printStackTrace();
+            Toast.makeText(MainActivity.this, "Lỗi khi xử lý ảnh", Toast.LENGTH_SHORT).show();
+        }
     }
 
-    private void processCapturedImage(Bitmap bitmap) {
-        InputImage image = InputImage.fromBitmap(bitmap, 0);
-        TextRecognizer recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS);
 
-        recognizer.process(image)
+    // Hàm attemptOCRWithRotation: Thử xoay ảnh theo các góc cho đến khi detect được biển số hoặc hết góc
+    private void attemptOCRWithRotation(final Bitmap originalBitmap, final int[] angles, final int index, final OCRCallback callback) {
+        if (index >= angles.length) {
+            callback.onNoPlateFound();
+            return;
+        }
+        // Xoay ảnh theo góc được chỉ định
+        final Bitmap rotatedBitmap = rotateBitmap(originalBitmap, angles[index]);
+        if (rotatedBitmap == null) {
+            attemptOCRWithRotation(originalBitmap, angles, index + 1, callback);
+            return;
+        }
+        InputImage image = InputImage.fromBitmap(rotatedBitmap, 0);
+        textRecognizer.process(image)
                 .addOnSuccessListener(visionText -> {
-                    String rawText = visionText.getText();
-                    Log.d("MLKit", "Recognized text: " + rawText);
-                    String cleanedText = rawText.replaceAll("[\\s-]+", "").trim().toUpperCase();
-                    Log.d("MLKit", "Cleaned text: " + cleanedText);
-
-                    // Regex mẫu cho biển số: 2 chữ số, 1-2 chữ cái, 4-5 chữ số
-                    String regex = "\\d{2}[A-Z]{1,2}\\d{4,5}";
-                    Pattern pattern = Pattern.compile(regex);
-                    Matcher matcher = pattern.matcher(cleanedText);
-                    if (matcher.find()) {
-                        String licensePlate = matcher.group();
-                        Toast.makeText(MainActivity.this, "Biển số: " + licensePlate, Toast.LENGTH_LONG).show();
-                        //txtBienSoXe.setText(licensePlate);
-                        edtBienSoXe.setText(licensePlate);
-                        // Tự động gọi API với biển số vừa nhận dạng
-                        //callTrafficFineAPI(licensePlate);
+                    String recognizedText = visionText.getText();
+                    Log.d("MLKit", "Recognized text (rotation " + angles[index] + "°): " + recognizedText);
+                    String cleanedText = recognizedText.replaceAll("[\\s\\.-]+", "").trim().toUpperCase();
+                    Log.d("MLKit", "Cleaned text (rotation " + angles[index] + "°): " + cleanedText);
+                    String plate = extractLicensePlate(cleanedText);
+                    if (plate != null) {
+                        callback.onPlateFound(plate);
                     } else {
-                        Toast.makeText(MainActivity.this, "Không tìm thấy biển số xe", Toast.LENGTH_SHORT).show();
+                        // Không tìm thấy, giải phóng rotatedBitmap và thử góc tiếp theo
+                        if (rotatedBitmap != null && !rotatedBitmap.isRecycled()) {
+                            rotatedBitmap.recycle();
+                        }
+                        attemptOCRWithRotation(originalBitmap, angles, index + 1, callback);
                     }
                 })
                 .addOnFailureListener(e -> {
-                    Toast.makeText(MainActivity.this, "Lỗi xử lý ảnh: " + e.getMessage(), Toast.LENGTH_SHORT).show();
-                    Log.e("MLKit", "Text recognition error", e);
+                    Log.e("MLKit", "Text recognition error (rotation " + angles[index] + "°)", e);
+                    if (rotatedBitmap != null && !rotatedBitmap.isRecycled()) {
+                        rotatedBitmap.recycle();
+                    }
+                    attemptOCRWithRotation(originalBitmap, angles, index + 1, callback);
                 });
     }
+
+
+    // Hàm rotateBitmap: Xoay Bitmap theo góc cho trước và scale xuống nếu cần
+    private Bitmap rotateBitmap(Bitmap source, float angle) {
+        try {
+            // Để giảm bộ nhớ, scale ảnh xuống 50% trước khi xoay
+            int newWidth = source.getWidth() / 2;
+            int newHeight = source.getHeight() / 2;
+            Bitmap scaledBitmap = Bitmap.createScaledBitmap(source, newWidth, newHeight, true);
+            android.graphics.Matrix matrix = new android.graphics.Matrix();
+            matrix.postRotate(angle);
+            Bitmap rotated = Bitmap.createBitmap(scaledBitmap, 0, 0, scaledBitmap.getWidth(), scaledBitmap.getHeight(), matrix, true);
+            if (scaledBitmap != source && !scaledBitmap.isRecycled()) {
+                scaledBitmap.recycle();
+            }
+            return rotated;
+        } catch (OutOfMemoryError e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+
+    // Hàm extractLicensePlate: Áp dụng các mẫu regex để trích xuất biển số
+    private String extractLicensePlate(String cleanedText) {
+        // Các mẫu regex mở rộng cho biển số:
+        String regexStandard         = "\\d{2}[A-Z]{1,2}\\d{4,5}";
+        String regexDiplomatic       = "\\d{2}CD\\d{4,5}";
+        String regexMilitary         = "\\d{2}QT\\d{4,5}";
+        String regexTaxi             = "\\d{2}TX\\d{4,5}";
+        String regexStandardAlphaNum = "\\d{2}[A-Z0-9]{1,2}\\d{4,5}";
+        String[] regexPatterns = new String[] {
+                regexStandard,
+                regexDiplomatic,
+                regexMilitary,
+                regexTaxi,
+                regexStandardAlphaNum
+        };
+
+        for (String regex : regexPatterns) {
+            Pattern pattern = Pattern.compile(regex);
+            Matcher matcher = pattern.matcher(cleanedText);
+            if (matcher.find()) {
+                return matcher.group();
+            }
+        }
+        return null;
+    }
+
+
+    // Hàm resumeCamera: Khôi phục preview khi người dùng bấm "Chụp lại"
+    private void resumeCamera() {
+        previewView.setForeground(null);
+        // Nếu cần, gọi lại startCamera() để đảm bảo use case hoạt động
+        // startCamera();
+    }
+
+
 
     private void callTrafficFineAPI(String licensePlate) {
         // Bắt đầu animation loading trước khi gọi API
@@ -831,6 +1132,39 @@ public class MainActivity extends AppCompatActivity {
     // ================================================================
     // REGION: VÒNG ĐỜI ACTIVITY
     // ================================================================
+ //   @Override
+//    protected void onDestroy() {
+//        super.onDestroy();
+//        if (speechRecognizer != null) {
+//            speechRecognizer.destroy();
+//        }
+//        if (bluetoothSocket != null) {
+//            try {
+//                bluetoothSocket.close();
+//            } catch (IOException e) {
+//                e.printStackTrace();
+//            }
+//        }
+//    }
+//    protected void onDestroy() {
+//        super.onDestroy();
+//        if (speechRecognizer != null) {
+//            speechRecognizer.destroy();
+//        }
+//        if (bluetoothSocket != null) {
+//            try {
+//                bluetoothSocket.close();
+//            } catch (IOException e) {
+//                e.printStackTrace();
+//            }
+//        }
+//        if (textRecognizer != null) {
+//            textRecognizer.close();
+//        }
+//    }
+
+
+
     @Override
     protected void onDestroy() {
         super.onDestroy();
@@ -844,7 +1178,11 @@ public class MainActivity extends AppCompatActivity {
                 e.printStackTrace();
             }
         }
+        if (textRecognizer != null) {
+            textRecognizer.close();
+        }
     }
+
     // ================================================================
 
 
@@ -882,3 +1220,5 @@ public class MainActivity extends AppCompatActivity {
     // =============================================================
 
 }
+
+
